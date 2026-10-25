@@ -36,7 +36,7 @@ func run() error {
 	}
 	fmt.Printf("connected to %s %s (%s)\n", info.GetName(), info.GetServerVersion(), info.GetEdition())
 
-	// Collections and search: the native REST API (the SDK has no module for them yet).
+	// Demonstrate collections and search through the native REST API.
 	api := rest.New()
 	if err := api.Setup(ctx, "docs"); err != nil {
 		return err

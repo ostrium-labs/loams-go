@@ -1,5 +1,8 @@
 # loams-go
 
+These examples target **Loams SDK 0.1.2**. Installation and CI require the matching
+0.1.2 packages and release tags to be published.
+
 Example apps for the [Loams](https://loams.dev) Go SDK (`loams.dev/go`, Go 1.25+).
 
 Loams is an open-source engine for hybrid retrieval over your own bucket: vectors, BM25 and filters in one query, with SQL over the same collections. These examples show the Go SDK and the native REST API against a local engine.
@@ -14,18 +17,18 @@ All examples read and write only the namespace `examples-go`.
 
 ## Note on the SDK surface
 
-Go SDK 0.1.0 covers instance, live and tables. It has no collections, search or SQL module yet, so those calls go through `internal/rest`, a ~150 line helper over the native REST API. The SDK itself is used for connecting and for `GetInstance`. When the SDK grows those modules, the helper is the only thing to swap.
+The SDK provides namespaces, collections, documents, search, vector, graph, SQL and streams. These examples retain `internal/rest` for their native HTTP route demonstrations and use the SDK for instance discovery. See the [SDK notes example](https://github.com/ostrium-labs/loams/blob/v0.1.2/sdks/go/examples/notes/main.go) for builders, collection handles and SDK SQL.
 
 ## Install
 
 ```console
-go get loams.dev/go@v0.1.0
+go get loams.dev/go@v0.1.2
 ```
 
-If `go get` cannot resolve `loams.dev/go@v0.1.0` yet (the module lives in `sdks/go` of ostrium-labs/loams and needs Go 1.25 plus the published tag), point at a checkout of the monorepo with a `go.work`:
+For explicit local SDK development, point at a matching source checkout with a `go.work` (CI uses the published module):
 
 ```console
-git clone https://github.com/ostrium-labs/loams ../loams
+git clone --branch v0.1.2 --depth 1 https://github.com/ostrium-labs/loams ../loams
 printf 'go 1.25.0\n\nuse .\n\nreplace loams.dev/go => ../loams/sdks/go\n' > go.work
 ```
 
@@ -41,7 +44,7 @@ go run ./examples/sql
 go run ./examples/searchsvc
 ```
 
-Docs: <https://loams.dev/docs>. What ships in 0.1.0: [docs/release/preview.md](https://github.com/ostrium-labs/loams/blob/main/docs/release/preview.md).
+Docs: <https://loams.dev/docs>. What ships in 0.1.2: [docs/release/preview.md](https://github.com/ostrium-labs/loams/blob/main/docs/release/preview.md).
 
 ## License
 

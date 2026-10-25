@@ -1,7 +1,5 @@
-// Package rest is a tiny client for the Loams native REST API, shared by the
-// examples. The Go SDK at v0.1.0 has no collections, search or SQL module yet
-// (it covers instance, live and tables), so the examples call those routes
-// directly and use the SDK for everything it does have.
+// Package rest demonstrates the native HTTP JSON routes alongside the SDK.
+// The SDK also provides app modules, builders, collection handles and SQL.
 package rest
 
 import (
