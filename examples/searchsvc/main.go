@@ -1,16 +1,9 @@
-// Command searchsvc is a small HTTP search service over a Loams collection.
-//
-//	GET /search?q=refund&tenant=a&limit=3   -> JSON hits
-//	GET /healthz                            -> the engine's name and version (via the SDK)
-//
-// The query vector is a toy: a hash-free keyword embedding, so the example
-// needs no model. Swap embed() for a real one.
+// Command searchsvc serves GET /search over the Loams SDK collection handle
+// and GET /healthz through the instance module.
 package main
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -20,14 +13,11 @@ import (
 	"time"
 
 	loams "loams.dev/go"
-
-	"github.com/ostrium-labs/loams-go/internal/rest"
 )
 
-// embed maps text onto the 3 axes the sample documents use.
-func embed(q string) [3]float64 {
+func embed(q string) []float32 {
 	q = strings.ToLower(q)
-	v := [3]float64{}
+	v := []float32{0, 0, 0}
 	if strings.Contains(q, "refund") || strings.Contains(q, "damaged") {
 		v[0] = 1
 	}
@@ -37,7 +27,7 @@ func embed(q string) [3]float64 {
 	if strings.Contains(q, "return") || strings.Contains(q, "window") {
 		v[2] = 1
 	}
-	if v == [3]float64{} {
+	if v[0] == 0 && v[1] == 0 && v[2] == 0 {
 		v[0] = 0.1
 	}
 	return v
@@ -50,17 +40,24 @@ func main() {
 }
 
 func run() error {
-	sdk, err := loams.New(loams.Options{Endpoint: rest.Endpoint(), Auth: loams.APIKey(os.Getenv("LOAMS_API_KEY"))})
+	namespace := os.Getenv("LOAMS_NAMESPACE")
+	if namespace == "" {
+		namespace = "examples-go"
+	}
+	endpoint := os.Getenv("LOAMS_ENDPOINT")
+	if endpoint == "" {
+		endpoint = "http://127.0.0.1:8080"
+	}
+	var auth loams.TokenSource
+	if key := os.Getenv("LOAMS_API_KEY"); key != "" {
+		auth = loams.APIKey(key)
+	}
+	sdk, err := loams.New(loams.Options{Endpoint: endpoint, Auth: auth, Namespace: namespace, SessionConsistency: true})
 	if err != nil {
 		return err
 	}
 	defer sdk.Close()
-	api := rest.New()
-	setup, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	if err := api.Setup(setup, "docs"); err != nil {
-		return err
-	}
+	kb := sdk.Collection("kb", namespace)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -81,18 +78,24 @@ func run() error {
 		if limit <= 0 || limit > 50 {
 			limit = 5
 		}
-		// A fresh client per request: rest.Client keeps the last consistency token.
-		res, err := rest.New().HybridSearch(r.Context(), "docs", embed(q), q, r.URL.Query().Get("tenant"), limit)
+		query := kb.Query().Text(q, loams.TextOptions{Fields: []string{"body"}}).
+			Vector("embedding", embed(q), loams.VectorOptions{K: 20}).
+			Fuse(loams.RRF(60)).Limit(uint32(limit))
+		if tenant := r.URL.Query().Get("tenant"); tenant != "" {
+			query = query.Filter(loams.Filter.Eq("tenant", tenant))
+		}
+		res, err := kb.Search(r.Context(), query)
 		if err != nil {
-			var he *rest.Error
-			status := http.StatusBadGateway
-			if errors.As(err, &he) && he.Status == 400 {
-				status = http.StatusBadRequest
-			}
-			http.Error(w, err.Error(), status)
+			http.Error(w, err.Error(), http.StatusBadGateway)
 			return
 		}
-		writeJSON(w, res)
+		hits := make([]map[string]any, 0, len(res.GetHits()))
+		for _, hit := range res.GetHits() {
+			hits = append(hits, map[string]any{
+				"id": hit.GetPk().String(), "score": hit.GetScore(), "source": hit.GetSource().AsMap(),
+			})
+		}
+		writeJSON(w, map[string]any{"hits": hits})
 	})
 
 	addr := os.Getenv("ADDR")

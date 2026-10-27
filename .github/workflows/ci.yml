@@ -7,15 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with:
-          repository: ostrium-labs/loams
-          path: loams
-          sparse-checkout: sdks/go
       - uses: actions/setup-go@v5
         with:
           go-version: "1.25"
-      # Until loams.dev/go@v0.1.0 resolves, build against the monorepo source.
-      - run: printf 'go 1.25.0\n\nuse .\n\nreplace loams.dev/go => ./loams/sdks/go\n' > go.work
+      - run: go mod tidy
       - run: go vet ./...
       - run: go build ./...

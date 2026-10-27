@@ -1,31 +1,34 @@
 # loams-go
 
+These examples target the released **Loams SDK 0.1.2**.
+
 Example apps for the [Loams](https://loams.dev) Go SDK (`loams.dev/go`, Go 1.25+).
 
-Loams is an open-source engine for hybrid retrieval over your own bucket: vectors, BM25 and filters in one query, with SQL over the same collections. These examples show the Go SDK and the native REST API against a local engine.
+Loams is an open-source engine for hybrid retrieval over your own bucket: vectors, BM25 and filters in one query, with SQL over the same collections. These examples use the published Go SDK against a local engine.
 
 | Example | What it shows |
 |---|---|
 | [quickstart](examples/quickstart) | Connect, create a collection, upsert documents, hybrid search (vector + BM25 + filter) |
 | [sql](examples/sql) | Read-only SQL over a collection |
-| [searchsvc](examples/searchsvc) | A small HTTP search service |
+| [searchsvc](examples/searchsvc) | A small HTTP search service backed by SDK search |
+| [platform](examples/platform) | Opt-in, read-only Live app discovery |
 
 All examples read and write only the namespace `examples-go`.
 
-## Note on the SDK surface
+## SDK module coverage
 
-Go SDK 0.1.0 covers instance, live and tables. It has no collections, search or SQL module yet, so those calls go through `internal/rest`, a ~150 line helper over the native REST API. The SDK itself is used for connecting and for `GetInstance`. When the SDK grows those modules, the helper is the only thing to swap.
+The examples use 0.1.2 SDK modules for namespace and collection setup, documents, hybrid/vector search, SQL records, streams, instance discovery, system feature detection and optional Graph. Go 0.1.2 also exposes Live, tables and LiveAdmin; the opt-in platform example reads Live apps when the engine advertises Live. Go 0.1.2 does not expose the auth or general admin modules, and House has no SDK module in this release.
 
 ## Install
 
 ```console
-go get loams.dev/go@v0.1.0
+go get loams.dev/go@v0.1.2
 ```
 
-If `go get` cannot resolve `loams.dev/go@v0.1.0` yet (the module lives in `sdks/go` of ostrium-labs/loams and needs Go 1.25 plus the published tag), point at a checkout of the monorepo with a `go.work`:
+For explicit local SDK development, point at a matching source checkout with a `go.work` (CI uses the published module):
 
 ```console
-git clone https://github.com/ostrium-labs/loams ../loams
+git clone --branch v0.1.2 --depth 1 https://github.com/ostrium-labs/loams ../loams
 printf 'go 1.25.0\n\nuse .\n\nreplace loams.dev/go => ../loams/sdks/go\n' > go.work
 ```
 
@@ -39,9 +42,10 @@ export LOAMS_API_KEY=...                      # only if auth is on
 go run ./examples/quickstart
 go run ./examples/sql
 go run ./examples/searchsvc
+LOAMS_PLATFORM_EXAMPLE=1 go run ./examples/platform   # authorized credential required
 ```
 
-Docs: <https://loams.dev/docs>. What ships in 0.1.0: [docs/release/preview.md](https://github.com/ostrium-labs/loams/blob/main/docs/release/preview.md).
+Docs: <https://loams.dev/docs>. What ships in 0.1.2: [docs/release/preview.md](https://github.com/ostrium-labs/loams/blob/main/docs/release/preview.md).
 
 ## License
 
